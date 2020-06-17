@@ -8,6 +8,13 @@
     "devDependencies": {
         "lerna": "2.4.0"
     },
+    "resolutions": {
+        "**/@theia/core": "1.2.0",
+        "**/@theia/editor": "1.2.0",
+        "**/@theia/filesystem": "1.2.0",
+        "**/@theia/languages": "1.2.0",
+        "**/@theia/monaco": "1.2.0"
+    },
     "workspaces": [
         "diagram-impl",
         "diagram-server",
