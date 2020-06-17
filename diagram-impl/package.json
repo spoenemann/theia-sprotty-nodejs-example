@@ -1,0 +1,30 @@
+{
+    "name": "diagram-impl",
+    "version": "0.0.0",
+    "description": "Frontend implementation of a Sprotty diagram",
+    "license": "EPL-2.0",
+    "main": "lib/index",
+    "types": "lib/index",
+    "files": [
+        "css",
+        "lib",
+        "src"
+    ],
+    "dependencies": {
+        "sprotty": "^0.8.0"
+    },
+    "devDependencies": {
+        "@typescript-eslint/eslint-plugin": "^3.3.0",
+        "@typescript-eslint/parser": "^3.3.0",
+        "eslint": "^7.2.0",
+        "rimraf": "latest",
+        "typescript": "~3.9.5"
+    },
+    "scripts": {
+        "prepare": "yarn run clean && yarn run build",
+        "clean": "rimraf lib",
+        "build": "tsc && yarn run lint",
+        "watch": "tsc -w",
+        "lint": "eslint -c ../config/eslintrc.json --ext .ts src"
+    }
+}

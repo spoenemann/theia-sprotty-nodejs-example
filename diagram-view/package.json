@@ -1,0 +1,39 @@
+{
+    "name": "diagram-view",
+    "version": "0.0.0",
+    "description": "Diagram view for Theia",
+    "license": "EPL-2.0",
+    "keywords": [
+        "theia-extension"
+    ],
+    "files": [
+        "lib",
+        "src"
+    ],
+    "dependencies": {
+        "@theia/core": "latest",
+        "diagram-impl": "0.0.0",
+        "diagram-server": "0.0.0",
+        "sprotty-theia": "^0.8.0"
+    },
+    "devDependencies": {
+        "@typescript-eslint/eslint-plugin": "^3.3.0",
+        "@typescript-eslint/parser": "^3.3.0",
+        "eslint": "^7.2.0",
+        "rimraf": "latest",
+        "typescript": "~3.9.5"
+    },
+    "scripts": {
+        "prepare": "yarn run clean && yarn run build",
+        "clean": "rimraf lib",
+        "build": "tsc && yarn run lint",
+        "watch": "tsc -w",
+        "lint": "eslint -c ../config/eslintrc.json --ext .ts src"
+    },
+    "theiaExtensions": [
+        {
+            "frontend": "lib/browser/diagram-view-frontend-module",
+            "backend": "lib/node/diagram-view-backend-module"
+        }
+    ]
+}

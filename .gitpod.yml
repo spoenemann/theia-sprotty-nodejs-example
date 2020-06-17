@@ -5,5 +5,5 @@ ports:
   - port: 3000
 
 tasks:
-  - init: echo 'TODO init script'
-    command: echo 'TODO start script'
+  - init: yarn
+    command: yarn --cwd browser-app start
