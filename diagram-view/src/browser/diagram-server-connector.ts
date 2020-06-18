@@ -1,8 +1,8 @@
-import { injectable, inject } from 'inversify';
+import { injectable, inject, named } from 'inversify';
 import { WidgetManager } from '@theia/core/lib/browser';
 import { ActionMessage, ServerStatusAction, ExportSvgAction } from 'sprotty';
 import {
-    TheiaSprottyConnector, TheiaDiagramServer, TheiaFileSaver, DiagramManager, DiagramWidget
+    TheiaSprottyConnector, TheiaDiagramServer, TheiaFileSaver, DiagramManagerProvider, DiagramWidget
 } from 'sprotty-theia';
 import { DiagramClient, DiagramServerChannel } from '../common/diagram-server-channel';
 
@@ -15,8 +15,8 @@ export class DiagramServerConnector implements TheiaSprottyConnector, DiagramCli
     protected readonly fileSaver!: TheiaFileSaver;
     @inject(WidgetManager)
     protected readonly widgetManager!: WidgetManager;
-    @inject(DiagramManager)
-    protected readonly diagramManager!: DiagramManager;
+    @inject(DiagramManagerProvider)@named('example')
+    protected readonly diagramManager!: DiagramManagerProvider;
     @inject(DiagramServerChannel)
     protected readonly diagramServerChannel!: DiagramServerChannel;
 
@@ -34,11 +34,7 @@ export class DiagramServerConnector implements TheiaSprottyConnector, DiagramCli
     }
 
     sendMessage(message: ActionMessage): void {
-        this.diagramServerChannel.accept(message);
-    }
-
-    accept(message: ActionMessage): void {
-        this.onMessageReceived(message);
+        this.diagramServerChannel.onMessageReceived(message);
     }
 
     onMessageReceived(message: ActionMessage): void {
@@ -51,9 +47,10 @@ export class DiagramServerConnector implements TheiaSprottyConnector, DiagramCli
         this.fileSaver.save(uri, action);
     }
 
-    showStatus(clientId: string, status: ServerStatusAction): void {
+    async showStatus(clientId: string, status: ServerStatusAction): Promise<void> {
+        const diagramManager = await this.diagramManager();
         const widget = this.widgetManager
-            .getWidgets(this.diagramManager.id)
+            .getWidgets(diagramManager.id)
             .find(w => w instanceof DiagramWidget && w.clientId === clientId);
         if (widget instanceof DiagramWidget) {
             widget.setStatus(status);
