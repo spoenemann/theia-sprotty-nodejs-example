@@ -1,0 +1,28 @@
+.sprotty-node {
+    fill: #aaf;
+    stroke: #669;
+    stroke-width: 1px;
+}
+
+.sprotty-node.selected {
+    fill: #afa;
+    stroke: #696;
+}
+
+.sprotty-node.mouseover {
+    stroke-width: 3;
+}
+
+.sprotty-edge {
+    fill: none;
+    stroke: #669;
+    stroke-width: 3px;
+}
+
+.sprotty-edge.selected {
+    stroke: #696;
+}
+
+.sprotty-edge.mouseover {
+    stroke-width: 5px;
+}

@@ -1,11 +1,11 @@
 import { Deferred } from '@theia/core/lib/common/promise-util';
+import { IModelLayoutEngine } from 'sprotty/lib/model-source/local-model-source';
 import {
     Action, ActionMessage, isResponseAction, ResponseAction, RequestModelAction, RequestPopupModelAction,
     ComputedBoundsAction, SelectAction, SelectAllAction, CollapseExpandAction, CollapseExpandAllAction,
     OpenAction, LayoutAction, RequestBoundsAction, RequestAction, generateRequestId, SetModelAction, UpdateModelAction
 } from '../common/actions';
 import { SModelRoot, DiagramGenerator } from 'diagram-server';
-import { LayoutEngine } from './layout-engine';
 
 export class DiagramServerImpl {
 
@@ -60,15 +60,13 @@ export class DiagramServerImpl {
         const action = message.action;
         if (isResponseAction(action)) {
             const id = action.responseId;
-            if (id) {
-                const future = this.requests.get(id);
-                if (future) {
-                    this.requests.delete(id);
-                    future.resolve(action);
-                    return;
-                }
-                console.info('No matching request for response:', action);
+            const future = this.requests.get(id);
+            if (future) {
+                this.requests.delete(id);
+                future.resolve(action);
+                return;
             }
+            console.info('No matching request for response:', action);
         }
         this.handleAction(action);
     }
@@ -119,16 +117,18 @@ export class DiagramServerImpl {
         }
     }
     
-    protected handleRequestModel(action: RequestModelAction): void {
+    protected async handleRequestModel(action: RequestModelAction): Promise<void> {
         this.options = action.options;
-        this.generator.generate({
-            options: this.options as any
-        }).then(newRoot => {
+        try {
+            const newRoot = await this.generator.generate({
+                options: this.options as any
+            });
+            newRoot.revision = ++this.revision;
             this.currentRoot = newRoot;
             this.submitModel(this.currentRoot, false, action);
-        }, err => {
+        } catch (err) {
             console.error('Failed to generate diagram:', err);
-        });
+        }
     }
 
     protected async submitModel(newRoot: SModelRoot, update: boolean, cause?: Action): Promise<void> {
@@ -153,22 +153,23 @@ export class DiagramServerImpl {
         }
     }
     
-    private doSubmitModel(newRoot: SModelRoot, update: boolean, cause?: Action): void {
+    private async doSubmitModel(newRoot: SModelRoot, update: boolean, cause?: Action): Promise<void> {
+        if (newRoot.revision !== this.revision) {
+            return;
+        }
         if (this.needsServerLayout) {
-            this.services.layoutEngine.layout(newRoot, cause);
+            newRoot = await this.services.layoutEngine.layout(newRoot);
         }
-        if (newRoot.revision === this.revision) {
-            const modelType = newRoot.type;
-            if (cause && cause.kind === RequestModelAction.KIND && (cause as RequestModelAction).requestId) {
-                const response = { kind: SetModelAction.KIND, newRoot, responseId: (cause as RequestModelAction).requestId };
-                this.dispatch(response);
-            } else if (update && modelType === this.lastSubmittedModelType) {
-                this.dispatch({ kind: UpdateModelAction.KIND, newRoot, cause });
-            } else {
-                this.dispatch({ kind: SetModelAction.KIND, newRoot });
-            }
-            this.lastSubmittedModelType = modelType;
+        const modelType = newRoot.type;
+        if (cause && cause.kind === RequestModelAction.KIND && (cause as RequestModelAction).requestId) {
+            const response = { kind: SetModelAction.KIND, newRoot, responseId: (cause as RequestModelAction).requestId };
+            this.dispatch(response);
+        } else if (update && modelType === this.lastSubmittedModelType) {
+            this.dispatch({ kind: UpdateModelAction.KIND, newRoot, cause });
+        } else {
+            this.dispatch({ kind: SetModelAction.KIND, newRoot });
         }
+        this.lastSubmittedModelType = modelType;
     }
 
     protected handleComputedBounds(action: ComputedBoundsAction): SModelRoot | undefined {
@@ -211,5 +212,5 @@ export class DiagramServerImpl {
 export type DiagramOptions = { [key: string]: string | number | boolean };
 
 export interface DiagramServices {
-    readonly layoutEngine: LayoutEngine;
+    readonly layoutEngine: IModelLayoutEngine;
 }

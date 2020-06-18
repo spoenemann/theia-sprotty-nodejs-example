@@ -1,8 +1,8 @@
 import { Container, ContainerModule } from 'inversify';
 import {
     loadDefaultModules, TYPES, ConsoleLogger, LogLevel, configureModelElement, SGraph, SGraphView,
-    SNode, CircularNodeView, SEdge, PolylineEdgeView, SLabel, SLabelView, SPort, RectangularNodeView,
-    SCompartment, SCompartmentView
+    SNode, SEdge, PolylineEdgeView, SLabel, SLabelView, SPort, RectangularNodeView, SCompartment,
+    SCompartmentView, SRoutingHandle, SRoutingHandleView, configureViewerOptions
 } from 'sprotty';
 
 const diagramContainer: () => Container = () => {
@@ -15,11 +15,17 @@ const diagramContainer: () => Container = () => {
 
         const context = { bind, unbind, isBound, rebind };
         configureModelElement(context, 'graph', SGraph, SGraphView);
-        configureModelElement(context, 'node', SNode, CircularNodeView);
+        configureModelElement(context, 'node', SNode, RectangularNodeView);
         configureModelElement(context, 'port', SPort, RectangularNodeView);
         configureModelElement(context, 'edge', SEdge, PolylineEdgeView);
         configureModelElement(context, 'label', SLabel, SLabelView);
         configureModelElement(context, 'compartment', SCompartment, SCompartmentView);
+        configureModelElement(context, 'routing-point', SRoutingHandle, SRoutingHandleView);
+        configureModelElement(context, 'volatile-routing-point', SRoutingHandle, SRoutingHandleView);
+        configureViewerOptions(context, {
+            needsClientLayout: true,
+            needsServerLayout: true
+        });
     });
 
     const container = new Container();

@@ -1,14 +1,15 @@
 import { injectable, inject } from 'inversify';
+import { TYPES } from 'sprotty/lib/base/types';
+import { IModelLayoutEngine } from 'sprotty/lib/model-source/local-model-source';
 import { DiagramServerChannel, DiagramClient } from '../common/diagram-server-channel';
 import { ActionMessage } from '../common/actions';
 import { DiagramServerImpl, DiagramServices } from './diagram-server-impl';
-import { LayoutEngine } from './layout-engine';
 
 @injectable()
 export class DiagramServerChannelImpl implements DiagramServerChannel {
 
-    @inject(LayoutEngine)
-    protected readonly layoutEngine!: LayoutEngine;
+    @inject(TYPES.IModelLayoutEngine)
+    protected readonly layoutEngine!: IModelLayoutEngine;
 
     protected readonly servers = new Map<string, DiagramServerImpl>();
 

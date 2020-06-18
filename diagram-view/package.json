@@ -14,6 +14,7 @@
         "@theia/core": "latest",
         "diagram-impl": "0.0.0",
         "diagram-server": "0.0.0",
+        "sprotty-elk": "^0.8.0",
         "sprotty-theia": "^0.8.0"
     },
     "devDependencies": {

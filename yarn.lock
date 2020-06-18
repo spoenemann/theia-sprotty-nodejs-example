@@ -4806,6 +4806,11 @@ elegant-spinner@^1.0.1:
   resolved "https://registry.yarnpkg.com/elegant-spinner/-/elegant-spinner-1.0.1.tgz#db043521c95d7e303fd8f345bedc3349cfb0729e"
   integrity sha1-2wQ1IcldfjA/2PNFvtwzSc+wcp4=
 
+elkjs@^0.5.1:
+  version "0.5.1"
+  resolved "https://registry.yarnpkg.com/elkjs/-/elkjs-0.5.1.tgz#906e7fddfd3b57872500c144a50042ffbc3a8f0b"
+  integrity sha512-mDyMv90x3OPmG6Y0nqOqE5f97SUdl4AkFhQHdx33hYgR978XBGywt0XOwu87qR7vcGF/ue1j+FAaAX60qB9YwQ==
+
 elliptic@^6.0.0, elliptic@^6.5.2:
   version "6.5.2"
   resolved "https://registry.yarnpkg.com/elliptic/-/elliptic-6.5.2.tgz#05c5678d7173c049d8ca433552224a495d0e3762"
@@ -10803,6 +10808,14 @@ sprintf-js@~1.0.2:
   resolved "https://registry.yarnpkg.com/sprintf-js/-/sprintf-js-1.0.3.tgz#04e6926f662895354f3dd015203633b857297e2c"
   integrity sha1-BOaSb2YolTVPPdAVIDYzuFcpfiw=
 
+sprotty-elk@^0.8.0:
+  version "0.8.0"
+  resolved "https://registry.yarnpkg.com/sprotty-elk/-/sprotty-elk-0.8.0.tgz#052dedd94437e132c1004105db7e1cf771c07d30"
+  integrity sha512-Cn1g1pc7hwJDUP8oDi//L+K8gjf0Q9QSAm1ZfLOSU8cMZsOIsU3fV6anIHttlemEWkrn4/aFEEMVaFzhjzJ4TQ==
+  dependencies:
+    elkjs "^0.5.1"
+    sprotty "0.8.0"
+
 sprotty-theia@^0.8.0:
   version "0.8.0"
   resolved "https://registry.yarnpkg.com/sprotty-theia/-/sprotty-theia-0.8.0.tgz#6b441acd43e2382fb64c8298f8b2004a0f12e0c6"
@@ -10815,7 +10828,7 @@ sprotty-theia@^0.8.0:
     "@theia/monaco" "1.0.0"
     sprotty "^0.8.0"
 
-sprotty@^0.8.0:
+sprotty@0.8.0, sprotty@^0.8.0:
   version "0.8.0"
   resolved "https://registry.yarnpkg.com/sprotty/-/sprotty-0.8.0.tgz#fe0b3e64aa698f7e7d6de90eb22176a5340ec92e"
   integrity sha512-P5iTJGGLD9rqVqsNjpuCsWN1ifVoPwlhbvf+6Sl/J/o/tpYwnwDsHZiQkD72UFteV+0r0aZWvwppzLf8g9YpKw==

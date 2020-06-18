@@ -1,8 +1,9 @@
 import { ContainerModule } from 'inversify';
 import { ConnectionHandler, JsonRpcConnectionHandler } from '@theia/core/lib/common/messaging';
+import { elkLayoutModule, ElkFactory } from 'sprotty-elk';
+import ElkConstructor from 'elkjs/lib/elk.bundled';
 import { DiagramServerChannelImpl } from './diagram-server-channel-impl';
 import { DiagramServerChannel, diagramServerPath, DiagramClient } from '../common/diagram-server-channel';
-import { LayoutEngine } from './layout-engine';
 
 export default new ContainerModule((bind, unbind, isBound, rebind) => {
     bind(DiagramServerChannelImpl).toSelf();
@@ -14,5 +15,8 @@ export default new ContainerModule((bind, unbind, isBound, rebind) => {
             return service;
         })
     ).inSingletonScope();
-    bind(LayoutEngine).toSelf().inSingletonScope();
+    elkLayoutModule.registry(bind, unbind, isBound, rebind);
+    bind(ElkFactory).toConstantValue(() => new ElkConstructor({
+        algorithms: ['layered']
+    }));
 });
