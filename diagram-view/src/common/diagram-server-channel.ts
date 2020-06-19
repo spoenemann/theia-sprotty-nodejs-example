@@ -3,14 +3,14 @@ import { ActionMessage } from 'sprotty';
 
 export const diagramServerPath = '/services/diagram-server';
 export const DiagramServerChannel = Symbol('DiagramServerChannel');
-export interface DiagramServerChannel extends JsonRpcServer<DiagramClient> {
+export interface DiagramServerChannel extends JsonRpcServer<DiagramClientChannel> {
     onMessageReceived(message: ActionMessage): void;
 }
 
-export const DiagramClient = Symbol('DiagramClient');
-export interface DiagramClient {
+export const DiagramClientChannel = Symbol('DiagramClientChannel');
+export interface DiagramClientChannel {
     onMessageReceived(message: ActionMessage): void;
 }
 
 export const DiagramClientProvider = Symbol('DiagramClientProvider');
-export type DiagramClientProvider = () => Promise<DiagramClient>;
+export type DiagramClientProvider = () => Promise<DiagramClientChannel>;

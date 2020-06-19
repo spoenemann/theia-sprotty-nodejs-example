@@ -2,7 +2,7 @@ import { injectable, inject, Container } from 'inversify';
 import { TYPES, overrideViewerOptions, KeyTool } from 'sprotty';
 import { DiagramConfiguration, TheiaKeyTool } from 'sprotty-theia';
 import { diagramContainer } from 'diagram-impl';
-import { ExampleDiagramServer } from './example-diagram-server';
+import { DiagramServerProxy } from './diagram-server-proxy';
 import { DiagramServerConnector } from './diagram-server-connector';
 
 import 'sprotty-theia/css/theia-sprotty.css';
@@ -18,9 +18,9 @@ export class ExampleDiagramConfiguration implements DiagramConfiguration {
     createContainer(widgetId: string): Container {
         const container = diagramContainer();
         container.rebind(KeyTool).to(TheiaKeyTool).inSingletonScope();
-        container.bind(ExampleDiagramServer).toSelf().inSingletonScope();
+        container.bind(DiagramServerProxy).toSelf().inSingletonScope();
         container.bind(TYPES.ModelSource).toDynamicValue(context => {
-            const server = context.container.get(ExampleDiagramServer);
+            const server = context.container.get(DiagramServerProxy);
             this.diagramServerConnector.connect(server);
             return server;
         });

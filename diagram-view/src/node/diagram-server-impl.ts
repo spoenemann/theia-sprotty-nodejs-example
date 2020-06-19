@@ -6,6 +6,7 @@ import {
     OpenAction, LayoutAction, RequestBoundsAction, RequestAction, generateRequestId, SetModelAction, UpdateModelAction
 } from '../common/actions';
 import { SModelRoot, DiagramGenerator } from 'diagram-server';
+import { applyBounds, cloneModel } from './model-util';
 
 export class DiagramServerImpl {
 
@@ -174,9 +175,18 @@ export class DiagramServerImpl {
 
     protected handleComputedBounds(action: ComputedBoundsAction): SModelRoot | undefined {
         if (action.revision === this.currentRoot.revision) {
-            console.error('Method not implemented.');
+            applyBounds(this.currentRoot, action);
             return this.currentRoot;
         }
+    }
+
+    protected handleLayout(action: LayoutAction): void {
+        if (this.needsServerLayout) {
+			const newRoot = cloneModel(this.currentRoot);
+            newRoot.revision = ++this.revision;
+            this.currentRoot = newRoot;
+			this.doSubmitModel(newRoot, true, action);
+		}
     }
     
     protected handleRequestPopupModel(action: RequestPopupModelAction): void {
@@ -200,10 +210,6 @@ export class DiagramServerImpl {
     }
 
     protected handleOpen(action: OpenAction): void {
-        console.error('Method not implemented.');
-    }
-
-    protected handleLayout(action: LayoutAction): void {
         console.error('Method not implemented.');
     }
 

@@ -4,10 +4,10 @@ import { ActionMessage, ServerStatusAction, ExportSvgAction } from 'sprotty';
 import {
     TheiaSprottyConnector, TheiaDiagramServer, TheiaFileSaver, DiagramManagerProvider, DiagramWidget
 } from 'sprotty-theia';
-import { DiagramClient, DiagramServerChannel } from '../common/diagram-server-channel';
+import { DiagramClientChannel, DiagramServerChannel } from '../common/diagram-server-channel';
 
 @injectable()
-export class DiagramServerConnector implements TheiaSprottyConnector, DiagramClient {
+export class DiagramServerConnector implements TheiaSprottyConnector, DiagramClientChannel {
 
     private readonly servers: TheiaDiagramServer[] = [];
 

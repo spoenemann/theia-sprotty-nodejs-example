@@ -13,6 +13,20 @@
     stroke-width: 3;
 }
 
+.sprotty-port {
+    fill: #77e;
+    stroke: none;
+}
+
+.sprotty-port.selected {
+    fill: #afa;
+}
+
+.sprotty-port.mouseover {
+    stroke: #77e;
+    stroke-width: 2;
+}
+
 .sprotty-edge {
     fill: none;
     stroke: #669;
