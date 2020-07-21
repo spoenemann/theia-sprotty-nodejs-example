@@ -23,7 +23,7 @@ export class ExampleDiagramConfiguration implements DiagramConfiguration {
             const server = context.container.get(DiagramServerProxy);
             this.diagramServerConnector.connect(server);
             return server;
-        });
+        }).inSingletonScope();
         overrideViewerOptions(container, {
             baseDiv: widgetId
         });
