@@ -16,15 +16,16 @@ export class DiagramServerChannelImpl implements DiagramServerChannel {
     protected client: DiagramClientChannel | undefined;
 
     onMessageReceived(message: ActionMessage): void {
-        this.getServer(message.clientId).accept(message);
+        this.getServer(message.clientId).accept(message.action);
     }
 
     protected getServer(clientId: string): DiagramServerImpl {
         if (this.servers.has(clientId)) {
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             return this.servers.get(clientId)!;
         } else {
             const services: DiagramServices = { layoutEngine: this.layoutEngine };
-            const server = new DiagramServerImpl(clientId, message => this.client?.onMessageReceived(message), services);
+            const server = new DiagramServerImpl(async action => this.client?.onMessageReceived({ clientId, action }), services);
             this.servers.set(clientId, server);
             return server;
         }

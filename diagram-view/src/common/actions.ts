@@ -31,6 +31,15 @@ export function isResponseAction(object?: Action): object is ResponseAction {
             && (object as any)['responseId'] !== '';
 }
 
+export interface RejectAction extends ResponseAction {
+    kind: typeof RejectAction.KIND;
+    message: string;
+    detail?: JsonAny;
+}
+export namespace RejectAction {
+    export const KIND = 'rejectRequest';
+}
+
 export interface RequestModelAction extends RequestAction<SetModelAction> {
     kind: typeof RequestModelAction.KIND;
     options?: { [key: string]: string | number | boolean };
@@ -161,3 +170,15 @@ export interface LayoutAction {
 export namespace LayoutAction {
     export const KIND = 'layout';
 }
+
+// JSON types
+
+export type JsonAny =  JsonPrimitive | JsonMap | JsonArray | null;
+
+export type JsonPrimitive = string | number | boolean;
+
+export type JsonMap = {
+    [key: string]: JsonAny;
+}
+
+export type JsonArray = Array<JsonAny>

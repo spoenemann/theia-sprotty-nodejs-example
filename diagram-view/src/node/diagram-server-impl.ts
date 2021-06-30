@@ -1,9 +1,8 @@
 import { Deferred } from '@theia/core/lib/common/promise-util';
 import { IModelLayoutEngine } from 'sprotty/lib/model-source/local-model-source';
 import {
-    Action, ActionMessage, isResponseAction, ResponseAction, RequestModelAction, RequestPopupModelAction,
-    ComputedBoundsAction, SelectAction, SelectAllAction, CollapseExpandAction, CollapseExpandAllAction,
-    OpenAction, LayoutAction, RequestBoundsAction, RequestAction, generateRequestId, SetModelAction, UpdateModelAction
+    Action, isResponseAction, ResponseAction, RequestModelAction, ComputedBoundsAction, LayoutAction, RequestBoundsAction,
+    RequestAction, generateRequestId, SetModelAction, UpdateModelAction, RejectAction, isRequestAction
 } from '../common/actions';
 import { SModelRoot, DiagramGenerator } from 'diagram-server';
 import { applyBounds, cloneModel } from './model-util';
@@ -19,8 +18,7 @@ export class DiagramServerImpl {
     private revision = 0;
     private lastSubmittedModelType?: string;
 
-    constructor(readonly clientId: string,
-                readonly remoteEndpoint: (message: ActionMessage) => void,
+    constructor(readonly dispatch: <A extends Action>(action: A) => Promise<void>,
                 readonly services: DiagramServices) {
         this.currentRoot = {
             type: 'NONE',
@@ -54,26 +52,24 @@ export class DiagramServerImpl {
         return false;
     }
 
-    accept(message: ActionMessage): void {
-        if (message.clientId !== this.clientId) {
-            return;
-        }
-        const action = message.action;
+    accept(action: Action): Promise<void> {
         if (isResponseAction(action)) {
             const id = action.responseId;
             const future = this.requests.get(id);
             if (future) {
                 this.requests.delete(id);
-                future.resolve(action);
-                return;
+                if (action.kind === RejectAction.KIND) {
+                    const rejectAction: RejectAction = action as any;
+                    future.reject(new Error(rejectAction.message));
+                    console.warn(`Request with id ${action.responseId} failed: ${rejectAction.message}`, rejectAction.detail);
+                } else {
+                    future.resolve(action);
+                }
+                return Promise.resolve();
             }
             console.info('No matching request for response:', action);
         }
-        this.handleAction(action);
-    }
-
-    dispatch<A extends Action>(action: A): void {
-        this.remoteEndpoint({ clientId: this.clientId, action });
+        return this.handleAction(action);
     }
     
     request<Res extends ResponseAction>(action: RequestAction<Res>): Promise<Res> {
@@ -82,42 +78,39 @@ export class DiagramServerImpl {
         }
         const future = new Deferred<Res>();
         this.requests.set(action.requestId, future as any);
-        this.dispatch(action);
+        this.dispatch(action).catch(err => {
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+            this.requests.delete(action.requestId!);
+            future.reject(err);
+        });
         return future.promise;
     }
 
-    protected handleAction(action: Action): void {
-        switch (action.kind) {
-            case RequestModelAction.KIND:
-                this.handleRequestModel(action as RequestModelAction);
-                break;
-            case RequestPopupModelAction.KIND:
-                this.handleRequestPopupModel(action as RequestPopupModelAction);
-                break;
-            case ComputedBoundsAction.KIND:
-                this.handleComputedBounds(action as ComputedBoundsAction);
-                break;
-            case SelectAction.KIND:
-                this.handleSelect(action as SelectAction);
-                break;
-            case SelectAllAction.KIND:
-                this.handleSelectAll(action as SelectAllAction);
-                break;
-            case CollapseExpandAction.KIND:
-                this.handleCollapseExpand(action as CollapseExpandAction);
-                break;
-            case CollapseExpandAllAction.KIND:
-                this.handleCollapseExpandAll(action as CollapseExpandAllAction);
-                break;
-            case OpenAction.KIND:
-                this.handleOpen(action as OpenAction);
-                break;
-            case LayoutAction.KIND:
-                this.handleLayout(action as LayoutAction);
-                break;
+    protected rejectRemoteRequest(action: Action | undefined, error: Error): void {
+        if (action && isRequestAction(action)) {
+            this.dispatch({
+                kind: RejectAction.KIND,
+                responseId: action.requestId,
+                message: error.message,
+                detail: error.stack
+            });
         }
     }
-    
+
+    protected handleAction(action: Action): Promise<void> {
+        switch (action.kind) {
+            case RequestModelAction.KIND:
+                return this.handleRequestModel(action as RequestModelAction);
+            case ComputedBoundsAction.KIND:
+                return this.handleComputedBounds(action as ComputedBoundsAction);
+            case LayoutAction.KIND:
+                return this.handleLayout(action as LayoutAction);
+            default:
+                console.warn(`Unhandled action from client: ${action.kind}`);
+        }
+        return Promise.resolve();
+    }
+
     protected async handleRequestModel(action: RequestModelAction): Promise<void> {
         this.options = action.options;
         try {
@@ -128,6 +121,7 @@ export class DiagramServerImpl {
             this.currentRoot = newRoot;
             this.submitModel(this.currentRoot, false, action);
         } catch (err) {
+            this.rejectRemoteRequest(action, err);
             console.error('Failed to generate diagram:', err);
         }
     }
@@ -138,19 +132,17 @@ export class DiagramServerImpl {
                 // In this case the client won't send us the computed bounds
                 this.dispatch({ kind: RequestBoundsAction.KIND, newRoot });
             } else {
-                try {
-                    const request = { kind: RequestBoundsAction.KIND, newRoot };
-                    const response = await this.request(request as RequestAction<ComputedBoundsAction>);
-                    const model = this.handleComputedBounds(response);
-                    if (model) {
-                        this.doSubmitModel(model, update, cause);
-                    }
-                } catch (err) {
-                    console.error('RequestBoundsAction failed with an exception.', err);
+                const request = { kind: RequestBoundsAction.KIND, newRoot };
+                const response = await this.request(request as RequestAction<ComputedBoundsAction>);
+                if (response.revision === this.currentRoot.revision) {
+                    applyBounds(this.currentRoot, response);
+                    await this.doSubmitModel(this.currentRoot, update, cause);
+                } else {
+                    this.rejectRemoteRequest(cause, new Error(`Model revision does not match: ${response.revision}`));
                 }
             }
         } else {
-            this.doSubmitModel(newRoot, update, cause);
+            await this.doSubmitModel(newRoot, update, cause);
         }
     }
     
@@ -162,55 +154,34 @@ export class DiagramServerImpl {
             newRoot = await this.services.layoutEngine.layout(newRoot);
         }
         const modelType = newRoot.type;
-        if (cause && cause.kind === RequestModelAction.KIND && (cause as RequestModelAction).requestId) {
-            const response = { kind: SetModelAction.KIND, newRoot, responseId: (cause as RequestModelAction).requestId };
-            this.dispatch(response);
+        if (cause && cause.kind === RequestModelAction.KIND) {
+            const requestId = (cause as RequestModelAction).requestId;
+            const response = { kind: SetModelAction.KIND, newRoot, responseId: requestId };
+            await this.dispatch(response);
         } else if (update && modelType === this.lastSubmittedModelType) {
-            this.dispatch({ kind: UpdateModelAction.KIND, newRoot, cause });
+            await this.dispatch({ kind: UpdateModelAction.KIND, newRoot, cause });
         } else {
-            this.dispatch({ kind: SetModelAction.KIND, newRoot });
+            await this.dispatch({ kind: SetModelAction.KIND, newRoot });
         }
         this.lastSubmittedModelType = modelType;
     }
 
-    protected handleComputedBounds(action: ComputedBoundsAction): SModelRoot | undefined {
-        if (action.revision === this.currentRoot.revision) {
-            applyBounds(this.currentRoot, action);
-            return this.currentRoot;
+    protected handleComputedBounds(action: ComputedBoundsAction): Promise<void> {
+        if (action.revision !== this.currentRoot.revision) {
+            return Promise.reject();
         }
+        applyBounds(this.currentRoot, action);
+        return Promise.resolve();
     }
 
-    protected handleLayout(action: LayoutAction): void {
-        if (this.needsServerLayout) {
-			const newRoot = cloneModel(this.currentRoot);
-            newRoot.revision = ++this.revision;
-            this.currentRoot = newRoot;
-			this.doSubmitModel(newRoot, true, action);
-		}
-    }
-    
-    protected handleRequestPopupModel(action: RequestPopupModelAction): void {
-        console.error('Method not implemented.');
-    }
-
-    protected handleSelect(action: SelectAction): void {
-        console.error('Method not implemented.');
-    }
-
-    protected handleSelectAll(action: SelectAllAction): void {
-        console.error('Method not implemented.');
-    }
-
-    protected handleCollapseExpand(action: CollapseExpandAction): void {
-        console.error('Method not implemented.');
-    }
-
-    protected handleCollapseExpandAll(action: CollapseExpandAllAction): void {
-        console.error('Method not implemented.');
-    }
-
-    protected handleOpen(action: OpenAction): void {
-        console.error('Method not implemented.');
+    protected handleLayout(action: LayoutAction): Promise<void> {
+        if (!this.needsServerLayout) {
+            return Promise.resolve();
+        }
+        const newRoot = cloneModel(this.currentRoot);
+        newRoot.revision = ++this.revision;
+        this.currentRoot = newRoot;
+        return this.doSubmitModel(newRoot, true, action);
     }
 
 }
